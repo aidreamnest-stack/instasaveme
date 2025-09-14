@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reel Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .card {
+            background-color: #1f2937;
+        }
+        .form-input, .btn {
+            border-radius: 0.5rem;
+        }
+        .form-input {
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            color: #d1d5db;
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #6366f1;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background-color: #000;
+        }
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="p-8 flex items-center justify-center min-h-screen">
+
+    <div class="container mx-auto p-6 space-y-6">
+
+        <div class="card rounded-lg p-6 text-center text-white">
+            <h1 class="text-3xl font-bold mb-2">Reel Downloader</h1>
+            <p class="text-gray-400">Enter a public Instagram Reel URL to view the video.</p>
+        </div>
+
+        <div class="card rounded-lg p-6">
+            <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+                <input type="text" id="reel-url" placeholder="Paste Instagram Reel URL here..." class="form-input w-full p-3 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <button id="download-btn" class="btn btn-primary text-white p-3 font-bold text-sm">Download</button>
+            </div>
+            <p id="error-message" class="text-red-400 text-sm mt-4 hidden">An error occurred. Please check the URL and your server connection.</p>
+        </div>
+
+        <div class="card rounded-lg p-6">
+            <div id="video-display" class="relative rounded-lg overflow-hidden w-full aspect-video flex items-center justify-center">
+                <p id="placeholder-text" class="absolute inset-0 flex items-center justify-center text-gray-500 text-lg">Your video will appear here.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('download-btn').addEventListener('click', async () => {
+            const urlInput = document.getElementById('reel-url');
+            const videoDisplay = document.getElementById('video-display');
+            const placeholderText = document.getElementById('placeholder-text');
+            const errorMessage = document.getElementById('error-message');
+            const reelUrl = urlInput.value;
+
+            // Hide previous error message and show loading
+            errorMessage.classList.add('hidden');
+            videoDisplay.innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-white text-lg">Loading...</div>';
+
+            try {
+                // IMPORTANT: Match this URL to your back-end route
+                const API_URL = `http://localhost:3000/igdl?url=${encodeURIComponent(reelUrl)}`;
+
+                const response = await fetch(API_URL, {
+                    method: 'GET'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Extract the direct video URL from the JSON response
+                // The structure of the response is {"url": {"data": [{"url": "..."}]}}
+                const videoFileUrl = data.url.data[0].url;
+
+                if (!videoFileUrl) {
+                     throw new Error('Video URL not found in the response.');
+                }
+
+                videoDisplay.innerHTML = `
+                    <video controls autoplay class="w-full h-full object-contain">
+                        <source src="${videoFileUrl}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                `;
+
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessage.classList.remove('hidden');
+                videoDisplay.innerHTML = '<p id="placeholder-text" class="absolute inset-0 flex items-center justify-center text-gray-500 text-lg">An error occurred. Please check your URL and server connection.</p>';
+            }
+        });
+    </script>
+</body>
+</html>
