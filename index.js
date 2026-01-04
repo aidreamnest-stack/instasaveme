@@ -35,12 +35,33 @@ app.get("/igdl", async (req, res) => {
 
     console.log(`Processing Instagram URL: ${url}`);
 
-    const downloadedURL = await snapsave(url);
+    const result = await snapsave(url);
+    console.log("Snapsave response:", JSON.stringify(result, null, 2));
+
+    // Check if snapsave returned a valid response
+    if (!result || result.status === false) {
+      return res.status(400).json({
+        error: "Failed to fetch video",
+        details: result?.msg || "Unknown error from snapsave"
+      });
+    }
+
+    // Extract download link from the data array
+    if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
+      return res.status(404).json({
+        error: "No download links available",
+        details: "The snapsave response did not contain any download links"
+      });
+    }
+
+    // Get the first download link (usually the highest quality)
+    const downloadLink = result.data[0].url;
+    const thumbnail = result.data[0].thumbnail || null;
 
     // Return response in expected format
     res.json({
-      download_link: downloadedURL,
-      thumbnail: null // Optional field, can be populated if snapsave returns thumbnail
+      download_link: downloadLink,
+      thumbnail: thumbnail
     });
   } catch (err) {
     console.error("Error processing request:", err.message);
